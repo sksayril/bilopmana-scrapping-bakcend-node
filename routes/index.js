@@ -7,6 +7,7 @@ const scrapeGoogleMaps = require("../utilities/module.scrapper");
 const ScrapeResult = require("../models/scrape.model");
 
 /* GET home page. */
+// *********************************RAZORPAY*********************************
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -37,7 +38,7 @@ router.post("/verify-payment", async (req, res) => {
 
       if (!user) return res.status(400).json({ error: "User not found" });
 
-      user.credits += 130; 
+      user.credits += 150; 
       await user.save();
 
       res.json({ message: "Payment successful", credits: user.credits });
@@ -45,6 +46,72 @@ router.post("/verify-payment", async (req, res) => {
       res.status(500).json({ error: "Payment verification failed" });
   }
 });
+
+// *********************************PAYU MONEY*********************************
+
+// const PAYU_MERCHANT_KEY = "8688894"; 
+// const PAYU_MERCHANT_SALT = "Vzxxs7";
+// const PAYU_BASE_URL = "https://test.payu.in"; // Change to production URL if needed
+
+// // Generate a PayU Money transaction
+// router.post("/create-order", async (req, res) => {
+//     try {
+//         const { amount, email, phone, firstName, productInfo } = req.body;
+
+//         // Unique transaction ID
+//         const txnid = "txn_" + Date.now();
+
+//         // Create hash string for PayU
+//         const hashString = `${PAYU_MERCHANT_KEY}|${txnid}|${amount}|${productInfo}|${firstName}|${email}|||||||||||${PAYU_MERCHANT_SALT}`;
+//         const hash = crypto.createHash('sha512').update(hashString).digest('hex');
+
+//         // PayU payment request payload
+//         const payUData = {
+//             key: PAYU_MERCHANT_KEY,
+//             txnid,
+//             amount,
+//             productinfo: productInfo,
+//             firstname: firstName,
+//             email,
+//             phone,
+//             surl: "https://7cvccltb-5000.inc1.devtunnels.ms/success",
+//             furl: "https://7cvccltb-5000.inc1.devtunnels.ms/failure",
+//             hash,
+//             service_provider: "payu_paisa",
+//         };
+
+//         res.json({ payUData });
+//     } catch (error) {
+//         console.error("Error creating PayU order:", error);
+//         res.status(500).json({ error: "Error creating PayU order" });
+//     }
+// });
+
+// // Verify PayU payment
+// router.post("/verify-payment", async (req, res) => {
+//     try {
+//         const { userToken, txnid, mihpayid, status } = req.body;
+
+//         const decoded = jwt.verify(userToken, process.env.JWT_SECRET);
+//         const user = await User.findById(decoded.id);
+//         if (!user) return res.status(400).json({ error: "User not found" });
+
+//         if (status === "success") {
+//             user.credits += 150;
+//             await user.save();
+//             res.json({ message: "Payment successful", credits: user.credits });
+//         } else {
+//             res.status(400).json({ error: "Payment failed" });
+//         }
+//     } catch (error) {
+//         console.error("Payment verification failed:", error);
+//         res.status(500).json({ error: "Payment verification failed" });
+//     }
+// });
+
+
+
+
 
 // scrapeapi
 // router.post("/scrape", async (req, res) => {
@@ -133,5 +200,35 @@ router.post("/scrape", async (req, res) => {
       res.status(500).json({ error: "Scraping failed" });
   }
 });
-
+router.post("/get-scraped-data", async (req, res) => {
+    try {
+      const { userToken } = req.body;
+  
+      // Verify and decode the token
+      const decoded = jwt.verify(userToken, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id);
+  
+      if (!user) {
+        return res.status(400).json({ error: "User not found" });
+      }
+  
+      // Fetch all scraped data for the user
+      const scrapedData = await ScrapeResult.find({ userId: user._id });
+  
+      if (!scrapedData.length) {
+        return res.status(404).json({ error: "No scraped data found for this user" });
+      }
+  
+      res.json({
+        message: "Scraped data retrieved successfully",
+        data: scrapedData,
+      });
+  
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to retrieve scraped data" });
+    }
+  });
+  
+  
 module.exports = router;
